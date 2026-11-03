@@ -5,6 +5,7 @@ import {
   getAvailableLabels,
   getAvailableTrackers,
   getTorrentSortValue,
+  isTorrentCompleted,
   sortTorrents,
 } from "./torrent-list-utils.ts"
 import type { Torrent } from "./rpc-types.ts"
@@ -121,6 +122,91 @@ test("filterTorrents supports semantic status filters and label/tracker/search f
   expect(filterTorrents(torrents, { labelFilter: ["Movie"], translateStatus }).map(({ id }) => id)).toEqual([2])
   expect(filterTorrents(torrents, { trackerFilter: ["archive.example"], translateStatus }).map(({ id }) => id)).toEqual([3])
   expect(filterTorrents(torrents, { searchQuery: "ubuntu", translateStatus }).map(({ id }) => id)).toEqual([1])
+})
+
+test("filterTorrents supports completion, error, stalled and no-label filters", () => {
+  expect(
+    filterTorrents(torrents, {
+      completionFilter: ["completed"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([1])
+  expect(
+    filterTorrents(torrents, {
+      completionFilter: ["incomplete"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([2, 3])
+  expect(
+    filterTorrents(torrents, {
+      completionFilter: ["completed", "incomplete"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([1, 2, 3])
+
+  const withError = torrents.map((torrent) =>
+    torrent.id === 2
+      ? { ...torrent, error: 3, errorString: "No space left on device" }
+      : torrent,
+  )
+  expect(
+    filterTorrents(withError, {
+      errorFilter: ["error"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([2])
+  expect(
+    filterTorrents(withError, {
+      errorFilter: ["no-error"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([1, 3])
+
+  expect(
+    filterTorrents(torrents, {
+      stalledFilter: ["stalled"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([3])
+  expect(
+    filterTorrents(torrents, {
+      stalledFilter: ["not-stalled"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([1, 2])
+
+  const withoutLabels = torrents.map((torrent) =>
+    torrent.id === 3 ? { ...torrent, labels: [] } : torrent,
+  )
+  expect(
+    filterTorrents(withoutLabels, {
+      noLabelFilter: true,
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([3])
+  expect(
+    filterTorrents(withoutLabels, {
+      labelFilter: ["Movie"],
+      noLabelFilter: true,
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([2, 3])
+
+  expect(
+    filterTorrents(torrents, {
+      completionFilter: ["incomplete"],
+      stalledFilter: ["stalled"],
+      translateStatus,
+    }).map(({ id }) => id),
+  ).toEqual([3])
+})
+
+test("isTorrentCompleted falls back to percentDone", () => {
+  expect(isTorrentCompleted(torrents[0])).toBe(true)
+  expect(isTorrentCompleted(torrents[1])).toBe(false)
+  expect(
+    isTorrentCompleted({ ...torrents[1], isFinished: false, percentDone: 1 }),
+  ).toBe(true)
 })
 
 test("sortTorrents sorts by regular and derived fields", () => {

@@ -41,6 +41,11 @@ import { FilterPanel } from "@/components/torrents/filter-panel"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n-context"
 import type { LabeledColumnConfig } from "@/hooks/use-column-manager"
+import type {
+  CompletionFilterValue,
+  ErrorFilterValue,
+  StalledFilterValue,
+} from "@/lib/torrent-list-utils"
 
 interface DisplayColumnItemProps {
   id: string
@@ -117,9 +122,17 @@ interface TorrentToolbarProps {
   trackerFilter: string[]
   dirFilter: string[]
   labelFilter: string[]
+  completionFilter: CompletionFilterValue[]
+  errorFilter: ErrorFilterValue[]
+  stalledFilter: StalledFilterValue[]
+  noLabelFilter: boolean
   toggleTracker: (host: string) => void
   toggleDir: (path: string) => void
   toggleLabel: (label: string) => void
+  toggleCompletion: (value: CompletionFilterValue) => void
+  toggleError: (value: ErrorFilterValue) => void
+  toggleStalled: (value: StalledFilterValue) => void
+  toggleNoLabel: () => void
   clearFilters: () => void
   // Column management
   orderedVisibleColumnConfigs: LabeledColumnConfig[]
@@ -146,9 +159,17 @@ export function TorrentToolbar({
   trackerFilter,
   dirFilter,
   labelFilter,
+  completionFilter,
+  errorFilter,
+  stalledFilter,
+  noLabelFilter,
   toggleTracker,
   toggleDir,
   toggleLabel,
+  toggleCompletion,
+  toggleError,
+  toggleStalled,
+  toggleNoLabel,
   clearFilters,
   orderedVisibleColumnConfigs,
   visibleColumns,
@@ -206,9 +227,17 @@ export function TorrentToolbar({
           trackerFilter={trackerFilter}
           dirFilter={dirFilter}
           labelFilter={labelFilter}
+          completionFilter={completionFilter}
+          errorFilter={errorFilter}
+          stalledFilter={stalledFilter}
+          noLabelFilter={noLabelFilter}
           toggleTracker={toggleTracker}
           toggleDir={toggleDir}
           toggleLabel={toggleLabel}
+          toggleCompletion={toggleCompletion}
+          toggleError={toggleError}
+          toggleStalled={toggleStalled}
+          toggleNoLabel={toggleNoLabel}
           clearFilters={clearFilters}
         />
 

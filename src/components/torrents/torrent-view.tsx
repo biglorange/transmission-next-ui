@@ -166,9 +166,17 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     trackerFilter,
     dirFilter,
     labelFilter,
+    completionFilter,
+    errorFilter,
+    stalledFilter,
+    noLabelFilter,
     toggleTracker,
     toggleDir,
     toggleLabel,
+    toggleCompletion,
+    toggleError,
+    toggleStalled,
+    toggleNoLabel,
     clearFilters,
     trackers,
     downloadDirs,
@@ -270,7 +278,18 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1)
-  }, [statusFilter, searchQuery, trackerFilter, dirFilter, labelFilter, sortConfig])
+  }, [
+    statusFilter,
+    searchQuery,
+    trackerFilter,
+    dirFilter,
+    labelFilter,
+    completionFilter,
+    errorFilter,
+    stalledFilter,
+    noLabelFilter,
+    sortConfig,
+  ])
 
   const sortedTorrents = useMemo(() => sortTorrents(filteredTorrents, sortConfig), [filteredTorrents, sortConfig])
 
@@ -394,9 +413,17 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
           trackerFilter={trackerFilter}
           dirFilter={dirFilter}
           labelFilter={labelFilter}
+          completionFilter={completionFilter}
+          errorFilter={errorFilter}
+          stalledFilter={stalledFilter}
+          noLabelFilter={noLabelFilter}
           toggleTracker={toggleTracker}
           toggleDir={toggleDir}
           toggleLabel={toggleLabel}
+          toggleCompletion={toggleCompletion}
+          toggleError={toggleError}
+          toggleStalled={toggleStalled}
+          toggleNoLabel={toggleNoLabel}
           clearFilters={clearFilters}
           orderedVisibleColumnConfigs={orderedVisibleColumnConfigs}
           visibleColumns={visibleColumns}

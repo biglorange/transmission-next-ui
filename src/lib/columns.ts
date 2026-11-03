@@ -113,7 +113,10 @@ export const BASE_RPC_FIELDS = [
   "trackerStats",
   "error",
   "errorString",
-  "addedDate"
+  "addedDate",
+  "isFinished",
+  "percentDone",
+  "isStalled"
 ]
 
 export const GRID_MODE_RPC_FIELDS = [

@@ -17,12 +17,20 @@ export type SortKey =
 
 export type SortConfig = { key: SortKey; direction: "asc" | "desc" }
 
+export type CompletionFilterValue = "completed" | "incomplete"
+export type ErrorFilterValue = "error" | "no-error"
+export type StalledFilterValue = "stalled" | "not-stalled"
+
 export interface TorrentFilterOptions {
   statusFilter?: string
   searchQuery?: string
   trackerFilter?: string[]
   dirFilter?: string[]
   labelFilter?: string[]
+  completionFilter?: CompletionFilterValue[]
+  errorFilter?: ErrorFilterValue[]
+  stalledFilter?: StalledFilterValue[]
+  noLabelFilter?: boolean
   translateStatus: (statusKey: string) => string
 }
 
@@ -61,6 +69,10 @@ export function getAvailableLabels(torrents: Torrent[]): string[] {
   return Array.from(labels).sort()
 }
 
+export function isTorrentCompleted(torrent: Torrent): boolean {
+  return torrent.isFinished || torrent.percentDone >= 1
+}
+
 export function filterTorrents(torrents: Torrent[], options: TorrentFilterOptions): Torrent[] {
   const {
     statusFilter,
@@ -68,6 +80,10 @@ export function filterTorrents(torrents: Torrent[], options: TorrentFilterOption
     trackerFilter = [],
     dirFilter = [],
     labelFilter = [],
+    completionFilter = [],
+    errorFilter = [],
+    stalledFilter = [],
+    noLabelFilter = false,
     translateStatus,
   } = options
   const statusLower = statusFilter?.toLowerCase()
@@ -88,9 +104,34 @@ export function filterTorrents(torrents: Torrent[], options: TorrentFilterOption
       }
     }
 
+    if (completionFilter.length > 0) {
+      const completed = isTorrentCompleted(torrent)
+      if (!completionFilter.includes(completed ? "completed" : "incomplete")) return false
+    }
+
+    if (errorFilter.length > 0) {
+      const hasError =
+        (torrent.error ?? 0) !== 0 || Boolean(torrent.errorString)
+      if (!errorFilter.includes(hasError ? "error" : "no-error")) return false
+    }
+
+    if (stalledFilter.length > 0) {
+      const stalled = torrent.isStalled === true
+      if (!stalledFilter.includes(stalled ? "stalled" : "not-stalled")) return false
+    }
+
     if (trackerFilter.length > 0 && !torrent.trackerStats?.some((stat) => trackerFilter.includes(stat.host))) return false
     if (dirFilter.length > 0 && !dirFilter.includes(torrent.downloadDir)) return false
-    if (labelFilter.length > 0 && !torrent.labels?.some((label) => labelFilter.includes(parseTorrentLabel(label)))) return false
+    if (labelFilter.length > 0 || noLabelFilter) {
+      const hasMatchingLabel = Boolean(
+        torrent.labels?.some((label) => labelFilter.includes(parseTorrentLabel(label))),
+      )
+      const hasAnyLabel = Boolean(
+        torrent.labels?.some((label) => parseTorrentLabel(label).length > 0),
+      )
+      const matchesLabel = hasMatchingLabel || (noLabelFilter && !hasAnyLabel)
+      if (!matchesLabel) return false
+    }
     if (searchLower && !torrent.name.toLowerCase().includes(searchLower)) return false
 
     return true
