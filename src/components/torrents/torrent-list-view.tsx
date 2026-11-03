@@ -17,6 +17,7 @@ import {
   Pencil,
 } from "lucide-react"
 import { EditTorrentDialog } from "@/components/torrents/edit-torrent-dialog"
+import { TorrentSelectionBar } from "@/components/torrents/torrent-selection-bar"
 import { cn } from "@/lib/utils"
 import { formatSpeed, formatDuration, formatSize, getStatusLabel, formatDate } from "@/lib/formatters"
 import type { ColumnConfig } from "@/lib/columns"
@@ -42,11 +43,17 @@ interface TorrentListViewProps {
   allColumns: Array<ColumnConfig & { label: string }>
   selectedIds: number[]
   filteredCount: number
+  pageCount: number
+  isAllSelected: boolean
+  isSomeSelected: boolean
+  isPageSelected: boolean
   sortConfig: { key: SortKey; direction: 'asc' | 'desc' } | null
   tableMinWidth: number
   locale: string
   onToggleSelect: (id: number) => void
   onToggleSelectAll: () => void
+  onToggleSelectPage: () => void
+  onClearSelection: () => void
   onSort: (key: SortKey) => void
   onSingleAction: (id: number, action: "start" | "stop" | "remove") => void
 }
@@ -64,11 +71,17 @@ export function TorrentListView({
   allColumns,
   selectedIds,
   filteredCount,
+  pageCount,
+  isAllSelected,
+  isSomeSelected,
+  isPageSelected,
   sortConfig,
   tableMinWidth,
   locale,
   onToggleSelect,
   onToggleSelectAll,
+  onToggleSelectPage,
+  onClearSelection,
   onSort,
   onSingleAction,
 }: TorrentListViewProps) {
@@ -176,26 +189,42 @@ export function TorrentListView({
   }
 
   return (
-    <Card className="shadow-md border-none overflow-hidden py-0">
+    <div className="space-y-3">
+      <TorrentSelectionBar
+        selectedCount={selectedIds.length}
+        filteredCount={filteredCount}
+        pageCount={pageCount}
+        isAllSelected={isAllSelected}
+        isPageSelected={isPageSelected}
+        onToggleSelectAll={onToggleSelectAll}
+        onToggleSelectPage={onToggleSelectPage}
+        onClearSelection={onClearSelection}
+      />
+      <Card className="shadow-md border-none overflow-hidden py-0">
       <CardContent className="p-0 overflow-auto">
         <Table className="table-fixed" style={{ minWidth: `${tableMinWidth}px` }}>
           <TableHeader className="bg-muted/50">
             <TableRow className="hover:bg-transparent border-none">
               <TableHead className="w-[50px] pl-6 h-12">
-                <div
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={isAllSelected ? true : isSomeSelected ? "mixed" : false}
+                  aria-label={t("common.select_all", "Select all")}
+                  title={t("common.select_all_hint", "Select all torrents on all pages")}
                   className="cursor-pointer text-muted-foreground hover:text-primary transition-colors"
                   onClick={onToggleSelectAll}
                 >
-                  {selectedIds.length === filteredCount && filteredCount > 0 ? (
+                  {isAllSelected ? (
                     <CheckSquare className="h-4 w-4 text-primary" />
-                  ) : selectedIds.length > 0 ? (
-                    <div className="h-4 w-4 flex items-center justify-center">
-                      <div className="w-2.5 h-0.5 bg-primary rounded-full" />
-                    </div>
+                  ) : isSomeSelected ? (
+                    <span className="h-4 w-4 flex items-center justify-center">
+                      <span className="w-2.5 h-0.5 bg-primary rounded-full" />
+                    </span>
                   ) : (
                     <Square className="h-4 w-4" />
                   )}
-                </div>
+                </button>
               </TableHead>
               {orderedVisibleColumns.map(renderHeader)}
               <TableHead className="text-center w-[130px] h-12 pr-6">{t('common.actions')}</TableHead>
@@ -249,6 +278,7 @@ export function TorrentListView({
           </TableBody>
         </Table>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   )
 }

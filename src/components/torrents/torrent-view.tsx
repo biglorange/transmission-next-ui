@@ -50,6 +50,12 @@ import {
   type SingleTorrentAction,
 } from "@/lib/torrent-actions"
 import { sortTorrents, type SortConfig, type SortKey } from "@/lib/torrent-list-utils"
+import {
+  areAllSelected,
+  hasAnySelected,
+  toggleAllSelection,
+  togglePageSelection,
+} from "@/lib/torrent-selection"
 
 type CardColor = "green" | "blue" | "orange" | "purple"
 
@@ -275,13 +281,36 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     return sortedTorrents.slice(start, start + pageSize)
   }, [sortedTorrents, currentPage, pageSize, totalPages])
 
+  const filteredIds = useMemo(
+    () => filteredTorrents.map((torrent) => torrent.id),
+    [filteredTorrents],
+  )
+  const pageIds = useMemo(
+    () => paginatedTorrents.map((torrent) => torrent.id),
+    [paginatedTorrents],
+  )
+  const isAllSelected = useMemo(
+    () => areAllSelected(selectedIds, filteredIds),
+    [selectedIds, filteredIds],
+  )
+  const isSomeSelected = useMemo(
+    () => hasAnySelected(selectedIds, filteredIds),
+    [selectedIds, filteredIds],
+  )
+  const isPageSelected = useMemo(
+    () => areAllSelected(selectedIds, pageIds),
+    [selectedIds, pageIds],
+  )
+
   const toggleSelectAll = () => {
-    if (selectedIds.length === filteredTorrents.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(filteredTorrents.map(t => t.id))
-    }
+    setSelectedIds((previous) => toggleAllSelection(previous, filteredIds))
   }
+
+  const toggleSelectPage = () => {
+    setSelectedIds((previous) => togglePageSelection(previous, pageIds))
+  }
+
+  const clearSelection = () => setSelectedIds([])
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev =>
@@ -390,11 +419,17 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
             allColumns={allColumns}
             selectedIds={selectedIds}
             filteredCount={filteredTorrents.length}
+            pageCount={paginatedTorrents.length}
+            isAllSelected={isAllSelected}
+            isSomeSelected={isSomeSelected}
+            isPageSelected={isPageSelected}
             sortConfig={sortConfig}
             tableMinWidth={tableMinWidth}
             locale={locale}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
+            onToggleSelectPage={toggleSelectPage}
+            onClearSelection={clearSelection}
             onSort={handleSort}
             onSingleAction={handleSingleAction}
           />
