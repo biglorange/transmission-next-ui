@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -39,6 +39,8 @@ import { rpc } from "@/lib/rpc-client"
 import { formatSize, formatSpeed } from "@/lib/formatters"
 import { useTorrentData } from "@/hooks/use-torrent-data"
 import { useTorrentFilters } from "@/hooks/use-torrent-filters"
+import { useSessionState } from "@/hooks/use-session-state"
+import { useScrollRestoration } from "@/hooks/use-scroll-restoration"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useColumnManager } from "@/hooks/use-column-manager"
 import { TorrentListView } from "@/components/torrents/torrent-list-view"
@@ -127,9 +129,19 @@ interface TorrentViewProps {
 
 export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps) {
   const isMobile = useIsMobile()
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: "addedDate", direction: "desc" })
+  const listStateKey = `transmission-next-ui:torrent-list:${statusFilter ?? "all"}`
+  const [viewMode, setViewMode] = useSessionState<"list" | "grid">(
+    `${listStateKey}:view`,
+    "list",
+  )
+  const [selectedIds, setSelectedIds] = useSessionState<number[]>(
+    `${listStateKey}:selection`,
+    [],
+  )
+  const [sortConfig, setSortConfig] = useSessionState<SortConfig | null>(
+    `${listStateKey}:sort`,
+    { key: "addedDate", direction: "desc" },
+  )
   const { t, locale } = useI18n()
   const { searchQuery } = useSearch()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -142,7 +154,10 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     const saved = localStorage.getItem('torrent-page-size')
     return saved ? parseInt(saved, 10) : 100
   })
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useSessionState<number>(
+    `${listStateKey}:page`,
+    1,
+  )
 
   const {
     visibleColumns,
@@ -161,6 +176,20 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
   }, [pageSize])
 
   const { torrents, stats, freeSpace, fetchData } = useTorrentData(showStats, viewMode, visibleColumns)
+
+  useScrollRestoration(listStateKey, torrents.length > 0)
+
+  // Drop stale selections (for example after a torrent was removed while the
+  // selection was persisted from an earlier visit).
+  useEffect(() => {
+    if (torrents.length === 0) return
+
+    const availableIds = new Set(torrents.map((torrent) => torrent.id))
+    setSelectedIds((previous) => {
+      const next = previous.filter((id) => availableIds.has(id))
+      return next.length === previous.length ? previous : next
+    })
+  }, [torrents, setSelectedIds])
 
   const {
     trackerFilter,
@@ -182,7 +211,7 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     downloadDirs,
     availableLabels,
     filteredTorrents,
-  } = useTorrentFilters(torrents, statusFilter, searchQuery)
+  } = useTorrentFilters(torrents, statusFilter, searchQuery, listStateKey)
 
   const totalDownloadSpeed = useMemo(() =>
     torrents.reduce((acc, tor) => acc + (tor.rateDownload || 0), 0)
@@ -235,7 +264,7 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     } catch {
       toast.error(t('common.action_failed', 'Action Failed'))
     }
-  }, [fetchData, t])
+  }, [fetchData, setSelectedIds, t])
 
   const handleBatchAction = (action: BatchTorrentAction) => executeTorrentAction(selectedIds, action, "batch")
 
@@ -275,25 +304,62 @@ export function TorrentView({ statusFilter, showStats = true }: TorrentViewProps
     setSortConfig(direction === null ? null : { key, direction })
   }
 
+  const filterStateSignature = useMemo(
+    () => JSON.stringify({
+      statusFilter,
+      searchQuery,
+      trackerFilter,
+      dirFilter,
+      labelFilter,
+      completionFilter,
+      errorFilter,
+      stalledFilter,
+      noLabelFilter,
+      sortConfig,
+    }),
+    [
+      statusFilter,
+      searchQuery,
+      trackerFilter,
+      dirFilter,
+      labelFilter,
+      completionFilter,
+      errorFilter,
+      stalledFilter,
+      noLabelFilter,
+      sortConfig,
+    ],
+  )
+  const previousFilterStateSignature = useRef(filterStateSignature)
+
+  // Reset to the first page only when filters/search/sorting actually change.
+  // On mount we keep the restored page so returning from a detail page lands on
+  // the same page the user left.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (previousFilterStateSignature.current === filterStateSignature) return
+
+    previousFilterStateSignature.current = filterStateSignature
     setCurrentPage(1)
-  }, [
-    statusFilter,
-    searchQuery,
-    trackerFilter,
-    dirFilter,
-    labelFilter,
-    completionFilter,
-    errorFilter,
-    stalledFilter,
-    noLabelFilter,
-    sortConfig,
-  ])
+
+    const scrollContainer = document.getElementById("app-scroll-container")
+    if (scrollContainer) scrollContainer.scrollTop = 0
+  }, [filterStateSignature, setCurrentPage])
 
   const sortedTorrents = useMemo(() => sortTorrents(filteredTorrents, sortConfig), [filteredTorrents, sortConfig])
 
   const totalPages = Math.ceil(sortedTorrents.length / pageSize)
+
+  // If the list shrank while the page was persisted (for example after
+  // deleting torrents), fall back to the last available page.
+  useEffect(() => {
+    if (sortedTorrents.length === 0) return
+
+    const lastPage = Math.max(1, Math.ceil(sortedTorrents.length / pageSize))
+    if (currentPage > lastPage) {
+      setCurrentPage(lastPage)
+    }
+  }, [sortedTorrents.length, pageSize, currentPage, setCurrentPage])
+
   const paginatedTorrents = useMemo(() => {
     if (totalPages <= 1) return sortedTorrents
     const start = (currentPage - 1) * pageSize

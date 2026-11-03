@@ -72,6 +72,12 @@ test("groups files by directory, collapses and toggles directories", async () =>
     "aria-checked",
     "true",
   )
+  // Directories start collapsed.
+  expect(
+    screen.queryByRole("checkbox", { name: /E01\.mkv/ }),
+  ).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Season 1" }))
   expect(screen.getByRole("checkbox", { name: /E01\.mkv/ })).toBeInTheDocument()
 
   await user.click(screen.getByRole("button", { name: "Season 1" }))
@@ -126,11 +132,11 @@ test("expands and collapses every directory", async () => {
     </I18nProvider>,
   )
 
+  await user.click(screen.getByRole("button", { name: "Expand all" }))
+  expect(screen.getByRole("checkbox", { name: /E01\.mkv/ })).toBeInTheDocument()
+
   await user.click(screen.getByRole("button", { name: "Collapse all" }))
   expect(
     screen.queryByRole("checkbox", { name: /E01\.mkv/ }),
   ).not.toBeInTheDocument()
-
-  await user.click(screen.getByRole("button", { name: "Expand all" }))
-  expect(screen.getByRole("checkbox", { name: /E01\.mkv/ })).toBeInTheDocument()
 })

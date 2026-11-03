@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft,
   ArrowDown,
@@ -48,8 +48,23 @@ import {
 function TorrentDetailsContent() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { t, locale } = useI18n()
   const idValue = searchParams.get('id')
+  const listPath = (() => {
+    const from = searchParams.get('from')
+    return from && ["/", "/active", "/downloading", "/paused", "/seeding"].includes(from)
+      ? from
+      : "/"
+  })()
+  const goBack = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1)
+    } else {
+      // Direct link / reload: no in-app history to go back to.
+      navigate(listPath)
+    }
+  }, [listPath, location.key, navigate])
   const [activeTab, setActiveTab] = useState("general")
   const [torrent, setTorrent] = useState<Torrent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -130,7 +145,7 @@ function TorrentDetailsContent() {
           <h2 className="text-2xl font-bold">Torrent Not Found</h2>
           <p className="text-muted-foreground max-w-xs mx-auto mt-2">The torrent you're looking for might have been removed or doesn't exist.</p>
         </div>
-        <Button onClick={() => navigate("/")} variant="outline" className="rounded-xl px-8">
+        <Button onClick={goBack} variant="outline" className="rounded-xl px-8">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
         </Button>
       </div>
@@ -159,7 +174,7 @@ function TorrentDetailsContent() {
     try {
       await rpc.removeTorrents([tor.id], deleteLocalData)
       setIsDeleteDialogOpen(false)
-      navigate("/")
+      goBack()
     } catch (err) {
       console.error("Failed to remove torrent:", err)
     }
@@ -205,7 +220,7 @@ function TorrentDetailsContent() {
               variant="outline"
               size="icon"
               className="rounded-full shadow-sm hover:translate-x-[-2px] transition-transform shrink-0"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

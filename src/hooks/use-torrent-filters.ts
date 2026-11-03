@@ -1,6 +1,7 @@
 "use client"
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { useI18n } from "@/lib/i18n-context"
+import { useSessionState } from "@/hooks/use-session-state"
 import type { Torrent } from "@/lib/rpc-types"
 import {
   filterTorrents,
@@ -12,6 +13,26 @@ import {
   type StalledFilterValue,
 } from "@/lib/torrent-list-utils"
 
+export interface TorrentFilterState {
+  tracker: string[]
+  dir: string[]
+  label: string[]
+  completion: CompletionFilterValue[]
+  error: ErrorFilterValue[]
+  stalled: StalledFilterValue[]
+  noLabel: boolean
+}
+
+const EMPTY_FILTERS: TorrentFilterState = {
+  tracker: [],
+  dir: [],
+  label: [],
+  completion: [],
+  error: [],
+  stalled: [],
+  noLabel: false,
+}
+
 function toggleFilterValue<T extends string>(values: T[], value: T): T[] {
   return values.includes(value)
     ? values.filter((item) => item !== value)
@@ -21,16 +42,14 @@ function toggleFilterValue<T extends string>(values: T[], value: T): T[] {
 export function useTorrentFilters(
   torrents: Torrent[],
   statusFilter: string | undefined,
-  searchQuery: string
+  searchQuery: string,
+  storageKey: string,
 ) {
   const { t } = useI18n()
-  const [trackerFilter, setTrackerFilter] = useState<string[]>([])
-  const [dirFilter, setDirFilter] = useState<string[]>([])
-  const [labelFilter, setLabelFilter] = useState<string[]>([])
-  const [completionFilter, setCompletionFilter] = useState<CompletionFilterValue[]>([])
-  const [errorFilter, setErrorFilter] = useState<ErrorFilterValue[]>([])
-  const [stalledFilter, setStalledFilter] = useState<StalledFilterValue[]>([])
-  const [noLabelFilter, setNoLabelFilter] = useState(false)
+  const [filters, setFilters] = useSessionState<TorrentFilterState>(
+    `${storageKey}:filters`,
+    EMPTY_FILTERS,
+  )
 
   const trackers = useMemo(() => getAvailableTrackers(torrents), [torrents])
 
@@ -41,74 +60,74 @@ export function useTorrentFilters(
   const filteredTorrents = useMemo(() => filterTorrents(torrents, {
     statusFilter,
     searchQuery,
-    trackerFilter,
-    dirFilter,
-    labelFilter,
-    completionFilter,
-    errorFilter,
-    stalledFilter,
-    noLabelFilter,
+    trackerFilter: filters.tracker,
+    dirFilter: filters.dir,
+    labelFilter: filters.label,
+    completionFilter: filters.completion,
+    errorFilter: filters.error,
+    stalledFilter: filters.stalled,
+    noLabelFilter: filters.noLabel,
     translateStatus: (statusKey) => t(statusKey),
-  }), [torrents, statusFilter, trackerFilter, dirFilter, labelFilter, completionFilter, errorFilter, stalledFilter, noLabelFilter, searchQuery, t])
+  }), [torrents, statusFilter, filters, searchQuery, t])
 
   const toggleTracker = (host: string) => {
-    setTrackerFilter(prev =>
-      prev.includes(host)
-        ? prev.filter(h => h !== host)
-        : [...prev, host]
-    )
+    setFilters((prev) => ({
+      ...prev,
+      tracker: toggleFilterValue(prev.tracker, host),
+    }))
   }
 
   const toggleDir = (path: string) => {
-    setDirFilter(prev =>
-      prev.includes(path)
-        ? prev.filter(p => p !== path)
-        : [...prev, path]
-    )
+    setFilters((prev) => ({
+      ...prev,
+      dir: toggleFilterValue(prev.dir, path),
+    }))
   }
 
   const toggleLabel = (label: string) => {
-    setLabelFilter(prev =>
-      prev.includes(label)
-        ? prev.filter(l => l !== label)
-        : [...prev, label]
-    )
+    setFilters((prev) => ({
+      ...prev,
+      label: toggleFilterValue(prev.label, label),
+    }))
   }
 
   const toggleCompletion = (value: CompletionFilterValue) => {
-    setCompletionFilter((prev) => toggleFilterValue(prev, value))
+    setFilters((prev) => ({
+      ...prev,
+      completion: toggleFilterValue(prev.completion, value),
+    }))
   }
 
   const toggleError = (value: ErrorFilterValue) => {
-    setErrorFilter((prev) => toggleFilterValue(prev, value))
+    setFilters((prev) => ({
+      ...prev,
+      error: toggleFilterValue(prev.error, value),
+    }))
   }
 
   const toggleStalled = (value: StalledFilterValue) => {
-    setStalledFilter((prev) => toggleFilterValue(prev, value))
+    setFilters((prev) => ({
+      ...prev,
+      stalled: toggleFilterValue(prev.stalled, value),
+    }))
   }
 
   const toggleNoLabel = () => {
-    setNoLabelFilter((prev) => !prev)
+    setFilters((prev) => ({ ...prev, noLabel: !prev.noLabel }))
   }
 
   const clearFilters = () => {
-    setTrackerFilter([])
-    setDirFilter([])
-    setLabelFilter([])
-    setCompletionFilter([])
-    setErrorFilter([])
-    setStalledFilter([])
-    setNoLabelFilter(false)
+    setFilters(EMPTY_FILTERS)
   }
 
   return {
-    trackerFilter,
-    dirFilter,
-    labelFilter,
-    completionFilter,
-    errorFilter,
-    stalledFilter,
-    noLabelFilter,
+    trackerFilter: filters.tracker,
+    dirFilter: filters.dir,
+    labelFilter: filters.label,
+    completionFilter: filters.completion,
+    errorFilter: filters.error,
+    stalledFilter: filters.stalled,
+    noLabelFilter: filters.noLabel,
     toggleTracker,
     toggleDir,
     toggleLabel,

@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -86,6 +86,7 @@ export function TorrentListView({
   onSingleAction,
 }: TorrentListViewProps) {
   const { t } = useI18n()
+  const location = useLocation()
   const orderedVisibleColumns = visibleColumns
     .map((columnId) => allColumns.find((column) => column.id === columnId))
     .filter((column): column is ColumnConfig & { label: string } => Boolean(column))
@@ -141,7 +142,7 @@ export function TorrentListView({
       case "name":
         return (
           <TableCell key={column.id} className="text-heading-3 max-w-[350px] lg:max-w-[500px]" style={style}>
-            <Link to={`/torrents/detail?id=${torrent.id}`} className="hover:text-primary transition-colors cursor-pointer block truncate">
+            <Link to={`/torrents/detail?id=${torrent.id}&from=${encodeURIComponent(location.pathname)}`} className="hover:text-primary transition-colors cursor-pointer block truncate">
               {torrent.name}
             </Link>
           </TableCell>

@@ -123,17 +123,17 @@ function DirectoryRow({
   node,
   depth,
   state,
-  collapsed,
+  expanded,
   showProgress,
-  onToggleCollapsed,
+  onToggleExpanded,
   onToggleSelection,
 }: {
   node: TorrentFileTreeDirectory
   depth: number
   state: TorrentFileSelectionState
-  collapsed: boolean
+  expanded: boolean
   showProgress: boolean
-  onToggleCollapsed: (path: string) => void
+  onToggleExpanded: (path: string) => void
   onToggleSelection: (node: TorrentFileTreeDirectory) => void
 }) {
   const { t } = useI18n()
@@ -148,14 +148,14 @@ function DirectoryRow({
       <button
         type="button"
         className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-        aria-expanded={!collapsed}
-        aria-label={`${collapsed ? t("common.expand", "Expand") : t("common.collapse", "Collapse")} ${node.name}`}
-        onClick={() => onToggleCollapsed(node.path)}
+        aria-expanded={expanded}
+        aria-label={`${expanded ? t("common.collapse", "Collapse") : t("common.expand", "Expand")} ${node.name}`}
+        onClick={() => onToggleExpanded(node.path)}
       >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
+        {expanded ? (
           <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
         )}
       </button>
 
@@ -170,17 +170,17 @@ function DirectoryRow({
         <SelectionCheckbox checked={checked} />
       </button>
 
-      {collapsed ? (
-        <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-      ) : (
+      {expanded ? (
         <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+      ) : (
+        <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
       )}
 
       <button
         type="button"
         className="min-w-0 flex-1 truncate text-left text-xs font-medium"
         title={node.path}
-        onClick={() => onToggleCollapsed(node.path)}
+        onClick={() => onToggleExpanded(node.path)}
       >
         {node.name}
       </button>
@@ -206,12 +206,21 @@ export function TorrentFileSelector({
   maxHeightClassName = "max-h-52",
 }: TorrentFileSelectorProps) {
   const { t } = useI18n()
-  const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(
+  // Directories start collapsed; only paths the user explicitly expands are
+  // kept here. This keeps large torrents readable on first open.
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(
     () => new Set(),
   )
 
   const tree = useMemo(() => buildTorrentFileTree(files), [files])
   const directoryPaths = useMemo(() => collectDirectoryPaths(tree), [tree])
+  const collapsedPaths = useMemo(
+    () =>
+      new Set(
+        directoryPaths.filter((path) => !expandedPaths.has(path)),
+      ),
+    [directoryPaths, expandedPaths],
+  )
   const flattened = useMemo(
     () => flattenTorrentFileTree(tree, collapsedPaths),
     [tree, collapsedPaths],
@@ -221,8 +230,9 @@ export function TorrentFileSelector({
     [selectedFileIndexes],
   )
 
-  // A different torrent (e.g. navigating to another detail page) should start
-  // expanded again. Polling the same torrent keeps the same signature.
+  // A different torrent (e.g. navigating to another detail page) starts
+  // collapsed again. Polling the same torrent keeps the same signature and
+  // therefore keeps the user's expanded folders.
   const fileSignature = useMemo(
     () => files.map((file) => `${file.index}:${file.name}`).join("\n"),
     [files],
@@ -230,7 +240,7 @@ export function TorrentFileSelector({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCollapsedPaths(new Set())
+    setExpandedPaths(new Set())
   }, [fileSignature])
 
   const selectedCount = files.reduce(
@@ -256,8 +266,8 @@ export function TorrentFileSelector({
     onSelectionChange(toggleNodeSelection(selectedFileIndexes, node))
   }
 
-  const toggleCollapsed = (path: string) => {
-    setCollapsedPaths((previous) => {
+  const toggleExpanded = (path: string) => {
+    setExpandedPaths((previous) => {
       const next = new Set(previous)
       if (next.has(path)) {
         next.delete(path)
@@ -268,8 +278,8 @@ export function TorrentFileSelector({
     })
   }
 
-  const expandAll = () => setCollapsedPaths(new Set())
-  const collapseAll = () => setCollapsedPaths(new Set(directoryPaths))
+  const expandAll = () => setExpandedPaths(new Set(directoryPaths))
+  const collapseAll = () => setExpandedPaths(new Set())
 
   return (
     <div className="overflow-hidden border-y border-muted/30">
@@ -335,9 +345,9 @@ export function TorrentFileSelector({
               node={node}
               depth={depth}
               state={getSelectionState(node, selected)}
-              collapsed={collapsedPaths.has(node.path)}
+              expanded={expandedPaths.has(node.path)}
               showProgress={showProgress}
-              onToggleCollapsed={toggleCollapsed}
+              onToggleExpanded={toggleExpanded}
               onToggleSelection={toggleDirectory}
             />
           ) : (

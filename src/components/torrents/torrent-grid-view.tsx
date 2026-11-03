@@ -1,6 +1,6 @@
 "use client"
 
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardAction } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +28,7 @@ export function TorrentGridView({
   onSingleAction,
 }: TorrentGridViewProps) {
   const { t } = useI18n()
+  const location = useLocation()
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -38,7 +39,7 @@ export function TorrentGridView({
         >
           <CardHeader className="pb-3 pt-4 border-b border-muted/50 bg-background/50">
             <div className="min-w-0 space-y-1">
-              <Link to={`/torrents/detail?id=${torrent.id}`} className="block group-hover:text-primary transition-colors">
+              <Link to={`/torrents/detail?id=${torrent.id}&from=${encodeURIComponent(location.pathname)}`} className="block group-hover:text-primary transition-colors">
                 <CardTitle className="text-heading-3 truncate pr-2 cursor-pointer leading-tight" title={torrent.name}>
                   {torrent.name}
                 </CardTitle>

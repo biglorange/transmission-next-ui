@@ -21,7 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <AppSidebar />
               <SidebarInset className="bg-background shadow-sm border-none md:m-2 md:rounded-xl overflow-hidden">
                 <Navbar />
-                <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+                <main id="app-scroll-container" className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
                   {children}
                 </main>
               </SidebarInset>
