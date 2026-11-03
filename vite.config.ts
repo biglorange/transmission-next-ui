@@ -1,7 +1,16 @@
+import { readFileSync } from "node:fs"
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+
+const pkg = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf-8")
+) as { version: string }
+
+// Release workflows pass the tag/version through VITE_APP_VERSION.
+// Strip the optional "v" prefix so the UI renders "v0.4.0" from either source.
+const appVersion = (process.env.VITE_APP_VERSION || pkg.version).replace(/^v/, "")
 
 // https://vite.dev/config/
 export default defineConfig(() => {
@@ -10,6 +19,9 @@ export default defineConfig(() => {
   return {
     base: "./",
     plugins: [react(), tailwindcss()],
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     test: {
       environment: "jsdom",
       setupFiles: "./src/test/setup.ts",

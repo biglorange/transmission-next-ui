@@ -1,6 +1,6 @@
 ## 群辉
 
-使用**群辉**套件，可参考以下脚本，其中使用的套件来源为矿神群晖SPK，首先从[Release](https://github.com/hisproc/transmission-next-ui/releases)下载最新版本的压缩包`release.zip`，并下载[synology.sh](scripts/synology.sh)脚本到同一目录下，执行以下命令，脚本将自动解压并尝试解压到目标路径:
+使用**群辉**套件，可参考以下脚本，其中使用的套件来源为矿神群晖SPK，首先从[Release](https://github.com/biglorange/transmission-next-ui/releases)下载最新版本的压缩包`release.zip`，并下载[synology.sh](../scripts/synology.sh)脚本到同一目录下，执行以下命令，脚本将自动解压并尝试解压到目标路径:
 
 ```bash
 chmod +x synology.sh
@@ -19,7 +19,7 @@ sudo bash synology.sh
 
 ```bash
 cd /vol1/1000/transmission # 此处替换为你要安装的路径
-sudo curl -fsSL https://raw.githubusercontent.com/hisproc/transmission-next-ui/main/download.sh | bash
+sudo curl -fsSL https://raw.githubusercontent.com/biglorange/transmission-next-ui/main/download.sh | bash
 ```
 
 执行后将在当前目录如下结构:

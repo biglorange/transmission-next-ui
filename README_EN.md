@@ -13,9 +13,11 @@
 
 English | [简体中文](README.md)
 
+> **Fork notice**: This repository is a fork of [hisproc/transmission-next-ui](https://github.com/hisproc/transmission-next-ui). Source hosting, badges, version checks, the install script, and the release pipeline are adapted to [biglorange/transmission-next-ui](https://github.com/biglorange/transmission-next-ui).
+
 ## Preview
 
-[**Live Demo**](https://transmission-next-ui-demo.pages.dev)
+[**Live Demo**](https://transmission-next-ui-demo.pages.dev) (upstream demo)
 
 | Light Mode | Dark Mode |
 | :---: | :---: |
@@ -59,7 +61,7 @@ You can deploy Transmission Next UI in three different ways:
 To install web UI or upgrade to the latest version, run the following command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hisproc/transmission-next-ui/main/download.sh | bash
+curl -fsSL https://raw.githubusercontent.com/biglorange/transmission-next-ui/main/download.sh | bash
 ```
 
 This will download the latest release and create a `docker-compose.yml` file in your current directory.
@@ -91,21 +93,42 @@ If you have modified the port settings in Transmission's configuration file loca
 
 ### 2. Manual Install
 
-1. Go to the [Releases](https://github.com/hisproc/transmission-next-ui/releases) page
-2. Download the latest or stable release (e.g. `transmission-next-ui-v1.0.0.zip`)
+1. Go to the [Releases](https://github.com/biglorange/transmission-next-ui/releases) page
+2. Download the latest or stable release (e.g. `release.zip`)
 3. Extract it and copy the contents to your transmission web directory (e.g. transmission/web/src)
 
 
 ### 3. Build from Source
 
 ```bash
-git clone git@github.com:hisproc/transmission-next-ui.git
+git clone git@github.com:biglorange/transmission-next-ui.git
 cd transmission-next-ui
 pnpm install
 pnpm build
 ```
 
 Then, copy the contents of the `dist/` folder to your transmission web directory.
+
+## Releases & Maintenance
+
+This repository builds and publishes with GitHub Actions; the workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+| --- | --- | --- |
+| `build.yml` | Push to `main`, pull requests, manual dispatch | Install, lint, test, build, and upload the `dist` artifact |
+| `release.yml` | Push a `v*` tag, manual dispatch | Test, build, and create a GitHub Release with `release.zip` and its checksum |
+
+Publishing a release (choose one):
+
+1. **Manual dispatch (recommended)**: go to **Actions → Release → Run workflow**, select `main`, and enter a version such as `0.4.0`. The workflow creates the `v0.4.0` tag and publishes the release automatically.
+2. **Push a tag**: `git tag v0.4.0 && git push origin v0.4.0`.
+
+Update `version` in `package.json` before releasing. The `release.zip` asset is the archive used by both the one-line installer and manual installs.
+
+> [!IMPORTANT]
+> Before the first release, make sure **Settings → Actions → General → Workflow permissions** is set to **Read and write permissions**, otherwise `release.yml` cannot create a release.
+
+See [doc/Release.md](doc/Release.md) for the full release, versioning, upstream sync, and backup-branch guide (in Chinese).
 
 ## License
 

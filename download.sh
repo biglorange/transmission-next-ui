@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # --- Config ---
-REPO="hisproc/transmission-next-ui"
+# 本 Fork 的发布仓库；如需部署到其他 Fork，可通过 REPO=owner/name 覆盖。
+REPO="${REPO:-biglorange/transmission-next-ui}"
 API_URL="https://api.github.com/repos/$REPO/releases?per_page=5"
 DOCKER_COMPOSE_URL="https://raw.githubusercontent.com/$REPO/main/docker-compose.yml"
 DEST_DIR="./web/src"

@@ -45,7 +45,7 @@ export function Navbar() {
     window.addEventListener("keydown", handleKeyDown)
 
     // Version check from GitHub
-    fetch("https://api.github.com/repos/hisproc/transmission-next-ui/releases/latest")
+    fetch(`https://api.github.com/repos/${APP_CONFIG.githubRepo}/releases/latest`)
       .then((res) => res.json())
       .then((data) => {
         const latest = data.tag_name;

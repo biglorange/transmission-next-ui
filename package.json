@@ -3,6 +3,14 @@
   "private": true,
   "version": "0.3.4",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/biglorange/transmission-next-ui.git"
+  },
+  "homepage": "https://github.com/biglorange/transmission-next-ui",
+  "bugs": {
+    "url": "https://github.com/biglorange/transmission-next-ui/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

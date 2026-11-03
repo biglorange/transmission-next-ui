@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version without the "v" prefix, e.g. 0.4.0'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark this release as a pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            raw="${INPUT_VERSION}"
+          else
+            raw="${GITHUB_REF_NAME}"
+          fi
+
+          # Allow both "0.4.0" and "v0.4.0" as input.
+          version="${raw#v}"
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '${raw}'. Expected a semver like 0.4.0 or v0.4.0."
+            exit 1
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${version}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved release tag: v${version}"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Build Project
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: pnpm build
+
+      - name: Create release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          cd dist
+          zip -r ../release.zip .
+          cd ..
+          sha256sum release.zip > release.zip.sha256
+          unzip -l release.zip | tail -n 5
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Transmission Next UI ${{ steps.version.outputs.tag }}
+          files: |
+            release.zip
+            release.zip.sha256
+          generate_release_notes: true
+          append_body: true
+          body: |
+            ## 安装 / Install
+
+            `release.zip` 可配合 `download.sh` 使用，或手动解压到 Transmission 的 Web 目录（如 `web/src`）。
+
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/download.sh | bash
+            ```
+
+            `release.zip` can be used with `download.sh`, or extracted manually into Transmission's web directory (e.g. `web/src`).
+          prerelease: ${{ inputs.prerelease || false }}
+          fail_on_unmatched_files: true
